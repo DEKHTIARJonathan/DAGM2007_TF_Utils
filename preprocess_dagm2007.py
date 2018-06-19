@@ -74,6 +74,8 @@ if __name__ == "__main__":
         challenge_name = "Class%d" % (challenge_id + 1)
         challenge_folder_path = os.path.join(FLAGS.data_dir, challenge_name)
 
+        print("[DAGM Preprocessing] Parsing Class ID: %02d ..." % (challenge_id + 1))
+
         if not os.path.exists(challenge_folder_path):
             raise ValueError('The folder `%s` does not exists' % challenge_folder_path)
 
@@ -95,12 +97,13 @@ if __name__ == "__main__":
                     filename, extension = os.path.splitext(os.path.basename(fullname))
 
                     lbl_filename = "%s_label.PNG" % filename
-                    lbl_filepath = os.path.join(filepath, lbl_filename)
+                    lbl_filepath = os.path.join(filepath, "Label", lbl_filename)
+
                     if os.path.exists(lbl_filepath):
                         defective = True
                     else:
                         defective = False
-                        lbl_filepath = ""
+                        lbl_filename = ""
 
                     if defective:
                         DEFECTIVE_COUNT[data_set][challenge_id + 1] += 1
