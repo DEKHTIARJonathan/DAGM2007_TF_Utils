@@ -87,7 +87,7 @@ if __name__ == "__main__":
                 raise ValueError('The folder `%s` does not exists' % challenge_set_folder_path)
 
             with open(os.path.join(challenge_folder_path, "%s_list.csv" % data_set.lower()), 'w') as data_list_file:
-                data_list_file.write('image_filepath,is_defective,lbl_image_filepath\n')
+                data_list_file.write('image_filepath,lbl_image_filepath,is_defective\n')
 
                 files = glob.glob(os.path.join(challenge_set_folder_path, "*.PNG"))
 
