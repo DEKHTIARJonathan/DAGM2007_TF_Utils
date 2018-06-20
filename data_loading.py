@@ -281,4 +281,3 @@ if __name__ == "__main__":
         print("\t[*] Batch Shape: %s" % str(img_batch.shape))
         print("\t[*] Mask Shape: %s" % str(mask_batch.shape))
         print("\t[*] Label Shape: %s" % str(lbl_batch.shape))
-
