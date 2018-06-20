@@ -17,13 +17,14 @@ __all__ = ['data_loading_fn']
 
 
 def data_loading_fn(
-        data_dir,
-        input_shape=(572, 572, 1),
-        mask_shape=(388, 388, 1),
-        training=True,
-        batch_size=32,
-        num_threads=32,
-        seed=None
+    data_dir,
+    input_shape=(572, 572, 1),
+    mask_shape=(388, 388, 1),
+    training=True,
+    batch_size=32,
+    num_threads=32,
+    use_gpu_prefetch=False,
+    seed=None
 ):
 
     shuffle_buffer_size = 10000
@@ -49,14 +50,12 @@ def data_loading_fn(
             image = tf.image.resize_images(
                 image,
                 size=resize_shape[:2],
-                method=tf.image.ResizeMethod.BILINEAR,  # [BILINEAR, NEAREST_NEIGHBOR, BICUBIC, AREA]
+                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR,  # [BILINEAR, NEAREST_NEIGHBOR, BICUBIC, AREA]
                 align_corners=False,
                 preserve_aspect_ratio=True
             )
 
-            #if resize_shape[-1] == 1:
-            #   image = tf.image.rgb_to_grayscale(image)
-            # image.set_shape(resize_shape)
+            image.set_shape(resize_shape)
 
             return image
 
@@ -67,7 +66,7 @@ def data_loading_fn(
 
         mask_image = tf.cond(
             tf.equal(image_mask_name, ""),
-            true_fn=lambda: tf.zeros(mask_shape, dtype=tf.float32),
+            true_fn=lambda: tf.zeros(mask_shape, dtype=tf.uint8),
             false_fn=lambda: decode_image(tf.strings.join([mask_image_dir, image_mask_name], separator='/'), resize_shape=mask_shape),
         )
 
@@ -110,6 +109,12 @@ def data_loading_fn(
 
     dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
 
+    if use_gpu_prefetch:
+        dataset.apply(tf.data.experimental.prefetch_to_device(
+            device="/gpu:0",
+            buffer_size=batch_size*8
+        ))
+
     return dataset
 
 
@@ -129,6 +134,8 @@ if __name__ == "__main__":
     import argparse
 
     import numpy as np
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
     parser = argparse.ArgumentParser(description="DAGM2007_data_loader_benchmark")
 
@@ -198,7 +205,8 @@ if __name__ == "__main__":
         mask_shape=(388, 388, 1),
         batch_size=BATCH_SIZE,
         training=True,
-        num_threads=32,
+        num_threads=64,
+        use_gpu_prefetch=True,
         seed=None
     )
 
@@ -215,7 +223,11 @@ if __name__ == "__main__":
         mask_images = tf.identity(mask_images)
         labels = tf.identity(labels)
 
-    with tf.Session() as sess:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.log_device_placement = True
+
+    with tf.Session(config=config) as sess:
 
         sess.run(tf.global_variables_initializer())
 
@@ -269,3 +281,4 @@ if __name__ == "__main__":
         print("\t[*] Batch Shape: %s" % str(img_batch.shape))
         print("\t[*] Mask Shape: %s" % str(mask_batch.shape))
         print("\t[*] Label Shape: %s" % str(lbl_batch.shape))
+
